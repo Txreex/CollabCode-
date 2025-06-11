@@ -41,3 +41,7 @@ body {
   cursor: pointer;
   border: 1px solid #ccc;
 }
+
+.file.active {
+    background-color: #acd3f2; /* or any highlight */
+}

@@ -24,8 +24,15 @@ if (!textarea) {
 }
 
 textarea.addEventListener('input', () => {
-    console.log("📝 Code changed, emitting to server");
-    socket.emit('code-change', textarea.value);
+    // if (!currentFile) {
+    //     console.warn("⚠️ No file selected yet");
+    //     return;
+    // }
+
+    // console.log("📝 Code changed in:", currentFile);
+    // fileContents[currentFile] = textarea.value;
+
+    socket.emit('code-change',textarea.value);
 });
 
 socket.on('changed-code', (code) => {
@@ -34,12 +41,34 @@ socket.on('changed-code', (code) => {
 });
 
 // --- File creation ---
+
+let currentFile = null;
+const fileContents = {};  // local cache of file contents
+
 function filing(filename, count) {
     console.log(`📁 Creating file element: ${filename} (count: ${count})`);
     const file = document.createElement("div");
     file.className = "file";
     file.id = `file-${count}`;
     file.innerText = filename;
+
+    file.addEventListener("click", () => {
+        console.log(`📂 Selected file: ${filename}`);
+        currentFile = filename;
+
+        // If we already have local content, load it
+        if (fileContents[filename] !== undefined) {
+            textarea.value = fileContents[filename];
+        } else {
+            // If not, request it from server
+            socket.emit('request_file', filename);
+        }
+
+        // Highlight selected file
+        document.querySelectorAll(".file").forEach(f => f.classList.remove("active"));
+        file.classList.add("active");
+    });
+
     return file;
 }
 

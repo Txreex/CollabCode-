@@ -44,10 +44,10 @@ io.on('connection', (socket) => {
     }
 
     // Handle code sync
-    socket.on('code-change', (change) => {
-        console.log('📝 Code change from:', socket.id);
-        code = change;
-        socket.broadcast.emit('changed-code', code);
+    socket.on('code-change', (newCode) => {
+    console.log("📝 Code updated by client");
+    code = newCode;
+    socket.broadcast.emit('changed-code', code);
     });
 
     // Handle file creation - THIS IS THE IMPORTANT PART
