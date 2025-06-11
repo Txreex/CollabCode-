@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+      <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #editor {
+      width: 100vw;
+      height: 100vh;
+      font-family: monospace;
+      font-size: 16px;
+      padding: 1rem;
+      box-sizing: border-box;
+      border: none;
+      resize: none;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+    <div class="container">
+        <div class="count">
+            <button id = "button">button</button>
+            <h1 id = "counter">0</h1>
+            <div id = "textArea">
+                <input type="text">
+            </div>
+        </div>
+    </div>
+    <textarea id="editor" placeholder="Start typing..."></textarea>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src = './client.js'></script>
+</body>
+</html>
