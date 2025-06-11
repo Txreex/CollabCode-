@@ -44,11 +44,14 @@ io.on('connection', (socket) => {
     }
 
     // Handle code sync
-    socket.on('code-change', (newCode) => {
-    console.log("📝 Code updated by client");
-    code = newCode;
-    socket.broadcast.emit('changed-code', code);
+    socket.on('code-change', ({ filename, content }) => {
+        console.log(`📝 Code change for file: ${filename}`);
+        if (files[filename]) {
+            files[filename].content = content;
+        }
+        socket.broadcast.emit('changed-code', content); // global sync
     });
+
 
     // Handle file creation - THIS IS THE IMPORTANT PART
     socket.on('file_create', (filename) => {
@@ -74,6 +77,20 @@ io.on('connection', (socket) => {
         
         console.log('📋 Current files:', Object.keys(files));
     });
+
+    socket.on('request_file', (filename) => {
+        console.log(`📄 File content requested for: ${filename}`);
+        
+        if (files[filename]) {
+            const content = files[filename].content || '';
+            socket.emit('file_data', { filename, content });
+            console.log(`📤 Sent content for: ${filename}`);
+        } else {
+            socket.emit('error', `File '${filename}' not found`);
+            console.warn(`⚠️ Requested file not found: ${filename}`);
+        }
+    });
+
 
     socket.on('disconnect', (reason) => {
         console.log('❌ User disconnected:', socket.id, 'Reason:', reason);

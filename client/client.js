@@ -1,5 +1,8 @@
 console.log("Client.js loaded");
 
+let currentFile = null;
+const fileContents = {};  // local cache of file contents
+
 const socket = io('http://localhost:3000/');
 
 // Connection status logging
@@ -24,16 +27,13 @@ if (!textarea) {
 }
 
 textarea.addEventListener('input', () => {
-    // if (!currentFile) {
-    //     console.warn("⚠️ No file selected yet");
-    //     return;
-    // }
+    if (!currentFile) return;
+    const content = textarea.value;
+    fileContents[currentFile] = content;
 
-    // console.log("📝 Code changed in:", currentFile);
-    // fileContents[currentFile] = textarea.value;
-
-    socket.emit('code-change',textarea.value);
+    socket.emit('code-change', { filename: currentFile, content });
 });
+
 
 socket.on('changed-code', (code) => {
     console.log("📝 Received code change from server");
@@ -41,9 +41,6 @@ socket.on('changed-code', (code) => {
 });
 
 // --- File creation ---
-
-let currentFile = null;
-const fileContents = {};  // local cache of file contents
 
 function filing(filename, count) {
     console.log(`📁 Creating file element: ${filename} (count: ${count})`);
@@ -118,6 +115,15 @@ socket.on('file_created', ({ filename, count }) => {
     box.appendChild(div);
     console.log("✅ File added to DOM");
 });
+
+socket.on('file_data', ({ filename, content }) => {
+    console.log(`📥 Received content for ${filename}`);
+    fileContents[filename] = content;       // cache it
+    if (filename === currentFile) {
+        textarea.value = content;
+    }
+});
+
 
 // Listen for errors
 socket.on('error', (error) => {
