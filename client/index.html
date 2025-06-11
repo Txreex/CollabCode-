@@ -1,40 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-      <style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Socket.IO File Editor</title>
+  <style>
     body {
-      margin: 0;
-      padding: 0;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
-    #editor {
-      width: 100vw;
-      height: 100vh;
-      font-family: monospace;
-      font-size: 16px;
-      padding: 1rem;
-      box-sizing: border-box;
+
+    .container{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100vw;
+        height: 100vh;
+        border: 2px solid black;
+    }
+    .nav{
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        width: 20vw;
+        height: 100vh;
+        border: 2px solid purple;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+    #editor{
+        width: 80vw;
+        height: 100vh;
+        font-family: monospace;
+        font-size: 16px;
+        padding: 1rem;
+        box-sizing: border-box;
+        border: none;
+        resize: none;
+        outline: none;
+        border: 2px solid red;
+    }
+
+    .file {
+      margin-top: 5px;
+      padding: 4px 8px;
+      background-color: #eee;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      width: 100%;
+      text-align: center;
+    }
+
+    #file-controls {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    #add {
+      padding: 5px 10px;
+      background: #4CAF50;
+      color: white;
       border: none;
-      resize: none;
-      outline: none;
+      cursor: pointer;
+    }
+
+    #file-name {
+      padding: 5px;
+      border: 1px solid #ccc;
+    }
+
+    #box {
+      width: 100%;
+      overflow-y: auto;
     }
   </style>
 </head>
 <body>
-    <div class="container">
-        <div class="count">
-            <button id = "button">button</button>
-            <h1 id = "counter">0</h1>
-            <div id = "textArea">
-                <input type="text">
-            </div>
-        </div>
+  <div class="container">
+    <div class="nav">
+      <div id="file-controls">
+        <button id="add"> + </button>
+        <input type="text" id="file-name" placeholder="file-name" />
+      </div>
+      <div id="box">
+        <!-- new file divs will go here -->
+      </div>
     </div>
-    <textarea id="editor" placeholder="Start typing..."></textarea>
+    <div class="space">
+      <textarea id="editor" placeholder="Start typing..."></textarea>
+    </div>
+  </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src = './client.js'></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    console.log("HTML loaded, Socket.IO script loaded");
+    console.log("Socket.IO available:", typeof io !== 'undefined');
+    
+    // Debug client code
+    console.log("Client.js loaded");
+
+    const socket = io('http://localhost:3000/');
+
+    // Connection status logging
+    socket.on('connect', () => {
+        console.log('✅ Connected to server with ID:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('❌ Disconnected from server');
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('❌ Connection error:', error);
+    });
+
+    // --- Code editor sync ---
+    const textarea = document.getElementById("editor");
+    if (!textarea) {
+        console.error("❌ Textarea with id 'editor' not found!");
+    } else {
+        console.log("✅ Found textarea element");
+    }
+
+    textarea.addEventListener('input', () => {
+        console.log("📝 Code changed, emitting to server");
+        socket.emit('code-change', textarea.value);
+    });
+
+    socket.on('changed-code', (code) => {
+        console.log("📝 Received code change from server");
+        textarea.value = code;
+    });
+
+    // --- File creation ---
+    function filing(filename, count) {
+        console.log(`📁 Creating file element: ${filename} (count: ${count})`);
+        const file = document.createElement("div");
+        file.className = "file";
+        file.id = `file-${count}`;
+        file.innerText = filename;
+        return file;
+    }
+
+    const box = document.getElementById("box");
+    const file_input = document.getElementById("file-name");
+    const add = document.getElementById("add");
+
+    // Check if all elements exist
+    if (!box) {
+        console.error("❌ Element with id 'box' not found!");
+    } else {
+        console.log("✅ Found box element");
+    }
+
+    if (!file_input) {
+        console.error("❌ Element with id 'file-name' not found!");
+    } else {
+        console.log("✅ Found file input element");
+    }
+
+    if (!add) {
+        console.error("❌ Element with id 'add' not found!");
+    } else {
+        console.log("✅ Found add button element");
+    }
+
+    // Add button click handler
+    add.addEventListener('click', () => {
+        console.log("🔘 Add button clicked");
+        const name = file_input.value.trim();
+        console.log("📝 File name entered:", name);
+        
+        if (name !== '') {
+            console.log("📤 Emitting file_create with:", name);
+            socket.emit('file_create', name);
+            file_input.value = '';
+            console.log("✅ Input cleared");
+        } else {
+            console.warn("⚠️ Empty file name, not creating file");
+        }
+    });
+
+    // Listen for file creation response
+    socket.on('file_created', ({ filename, count }) => {
+        console.log("📥 Received file_created:", filename, count);
+        const div = filing(filename, count);
+        box.appendChild(div);
+        console.log("✅ File added to DOM");
+    });
+
+    // Listen for errors
+    socket.on('error', (error) => {
+        console.error("❌ Server error:", error);
+    });
+
+    // Listen for existing files sync
+    socket.on('sync_files', (files) => {
+        console.log("📥 Received existing files:", files);
+    });
+
+    console.log("🚀 All event listeners set up");
+  </script>
 </body>
 </html>
