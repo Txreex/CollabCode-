@@ -1,111 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Socket.IO File Editor</title>
-  <style>
-    body {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    .container{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100vw;
-        height: 100vh;
-        border: 2px solid black;
-    }
-    .nav{
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-        width: 20vw;
-        height: 100vh;
-        border: 2px solid purple;
-        padding: 10px;
-        box-sizing: border-box;
-    }
-    #editor{
-        width: 80vw;
-        height: 100vh;
-        font-family: monospace;
-        font-size: 16px;
-        padding: 1rem;
-        box-sizing: border-box;
-        border: none;
-        resize: none;
-        outline: none;
-        border: 2px solid red;
-    }
-
-    .file {
-      margin-top: 5px;
-      padding: 4px 8px;
-      background-color: #eee;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      width: 100%;
-      text-align: center;
-      transition: background-color 0.2s;
-    }
-
-    .file:hover {
-      background-color: #ddd;
-    }
-
-    .file.selected {
-      background-color: #4CAF50;
-      color: white;
-      border-color: #45a049;
-    }
-
-    #file-controls {
-      display: flex;
-      gap: 5px;
-      margin-bottom: 10px;
-    }
-
-    #add {
-      padding: 5px 10px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    #file-name {
-      padding: 5px;
-      border: 1px solid #ccc;
-    }
-
-    #box {
-      width: 100%;
-      overflow-y: auto;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Real-Time Code Editor</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="nav">
-      <div id="file-controls">
-        <button id="add"> + </button>
-        <input type="text" id="file-name" placeholder="file-name" />
-      </div>
-      <div id="box">
-        <!-- new file divs will go here -->
-      </div>
-    </div>
-    <div class="space">
-      <textarea id="editor" placeholder="Start typing..."></textarea>
-    </div>
-  </div>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="actions">
+                <button id="folder_btn">📁 New Folder</button>
+                <button id="file_btn">📄 New File</button>
+            </div>
+            <div id="file-tree" class="file-tree">
+                <!-- Dynamic folder/file tree goes here -->
+            </div>
+        </aside>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src = './client.js'>
-  </script>
+        <!-- Code Editor -->
+        <main class="editor-area">
+            <textarea id="editor" class="code-editor" placeholder="Start typing..."></textarea>
+        </main>
+
+        <!-- File Info / Status -->
+        <footer class="status-bar">
+            <div id="current-file">📄 No File Selected</div>
+        </footer>
+    </div>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src = './client.js'></script>
 </body>
 </html>

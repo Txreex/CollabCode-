@@ -1,98 +1,214 @@
-console.log("Client.js loaded");
-
 let currentFile = null;
 const socket = io('http://localhost:3000/');
 
-// Elements
-const textarea = document.getElementById("editor");
-const box = document.getElementById("box");
-const file_input = document.getElementById("file-name");
-const add = document.getElementById("add");
+// Element references
+const editor = document.getElementById("editor");
+const folderBtn = document.getElementById("folder_btn");
+const fileBtn = document.getElementById("file_btn");
+const fileTree = document.getElementById("file-tree");
+const currentFileDisplay = document.getElementById("current-file");
 
-// --- Sanity Checks ---
-if (!textarea) console.error("❌ Textarea with id 'editor' not found!");
-if (!box) console.error("❌ Element with id 'box' not found!");
-if (!file_input) console.error("❌ Element with id 'file-name' not found!");
-if (!add) console.error("❌ Element with id 'add' not found!");
+// Sanity checks
+if (!editor) console.error("❌ Textarea with id 'editor' not found!");
+if (!folderBtn) console.error("❌ Folder button not found!");
+if (!fileBtn) console.error("❌ File button not found!");
+if (!fileTree) console.error("❌ File tree container not found!");
+if (!currentFileDisplay) console.error("❌ Current file display not found!");
 
-// --- Connection Events ---
-socket.on('connect', () => {
-    console.log('✅ Connected to server with ID:', socket.id);
-});
+function createFolderElement(folderName) {
+    const folder = document.createElement("div");
+    folder.className = "folder";
 
-socket.on('disconnect', () => {
-    console.log('❌ Disconnected from server');
-});
+    const title = document.createElement("div");
+    title.className = "folder-title";
 
-socket.on('connect_error', (error) => {
-    console.error('❌ Connection error:', error);
-});
+    const label = document.createElement("span");
+    label.innerText = `📁 ${folderName}`;
+    label.style.cursor = "pointer";
 
-// --- Textarea Input Handler ---
-if (textarea) {
-    textarea.addEventListener('input', () => {
-        if (!currentFile) return;
-        socket.emit('code-change', {
-            filename: currentFile,
-            content: textarea.value
-        });
+    const addSubfolderBtn = document.createElement("button");
+    addSubfolderBtn.textContent = "➕📁";
+    addSubfolderBtn.title = "Add Subfolder";
+    addSubfolderBtn.style.marginLeft = "10px";
+    addSubfolderBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const subfolderName = prompt("Enter subfolder name:");
+        if (subfolderName) {
+            const fullPath = `${folderName}/${subfolderName}`;
+            socket.emit("folder_create", fullPath);
+        }
     });
+
+    const addFileBtn = document.createElement("button");
+    addFileBtn.textContent = "➕📄";
+    addFileBtn.title = "Add File";
+    addFileBtn.style.marginLeft = "5px";
+    addFileBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const fileName = prompt("Enter file name:");
+        if (fileName) {
+            socket.emit("file_create", { filename: fileName, folder: folderName });
+        }
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.title = "Delete Folder";
+    deleteBtn.style.marginLeft = "5px";
+    deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (confirm("Delete this folder and all contents?")) {
+            socket.emit("folder_delete", folderName);
+        }
+    });
+
+    label.addEventListener("click", () => {
+        contentArea.classList.toggle("collapsed");
+    });
+
+    title.appendChild(label);
+    title.appendChild(addSubfolderBtn);
+    title.appendChild(addFileBtn);
+    title.appendChild(deleteBtn);
+
+    const contentArea = document.createElement("div");
+    contentArea.className = "folder-contents";
+    folder.appendChild(title);
+    folder.appendChild(contentArea);
+
+    folder.setAttribute("data-folder", folderName);
+    return folder;
 }
 
-// --- File Element Generator ---
-function filing(filename, count) {
+function createFileElement(filename, count) {
     const file = document.createElement("div");
     file.className = "file";
     file.id = `file-${count}`;
-    file.innerText = filename;
+    // Store the full filename path as a data attribute for reliable identification
+    file.setAttribute("data-filename", filename);
+    file.innerText = `📄 ${filename.split("/").pop()}`;
 
     file.addEventListener("click", () => {
         currentFile = filename;
         socket.emit('request_file', filename);
 
-        // UI highlighting
         document.querySelectorAll(".file").forEach(f => f.classList.remove("active"));
         file.classList.add("active");
+        currentFileDisplay.textContent = `📄 ${filename}`;
     });
 
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.title = "Delete File";
+    deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (confirm("Delete this file?")) {
+            socket.emit("file_delete", filename);
+        }
+    });
+
+    file.appendChild(deleteBtn);
     return file;
 }
 
-// --- Create New File Button ---
-if (add) {
-    add.addEventListener('click', () => {
-        const name = file_input.value.trim();
-        if (name !== '') {
-            socket.emit('file_create', name);
-            file_input.value = '';
+folderBtn.addEventListener("click", () => {
+    const folderName = prompt("Enter folder name:");
+    if (folderName) {
+        socket.emit("folder_create", folderName);
+    }
+});
+
+fileBtn.addEventListener("click", () => {
+    const fileName = prompt("Enter file name:");
+    if (fileName) {
+        socket.emit("file_create", { filename: fileName });
+    }
+});
+
+socket.on("folder_created", (folderName) => {
+    if (document.querySelector(`[data-folder='${folderName}']`)) return;
+
+    const parentPath = folderName.split("/").slice(0, -1).join("/");
+    const folderElement = createFolderElement(folderName);
+
+    if (parentPath) {
+        const parent = document.querySelector(`[data-folder='${parentPath}'] .folder-contents`);
+        if (parent) {
+            parent.appendChild(folderElement);
+        }
+    } else {
+        fileTree.appendChild(folderElement);
+    }
+});
+
+socket.on("folder_deleted", (folderName) => {
+    const folder = document.querySelector(`[data-folder='${folderName}']`);
+    if (folder) folder.remove();
+});
+
+socket.on("file_created", ({ filename, count, folder }) => {
+    const fileElement = createFileElement(filename, count);
+    const folderPath = filename.includes("/") ? filename.split("/").slice(0, -1).join("/") : null;
+
+    if (folderPath) {
+        const container = document.querySelector(`[data-folder='${folderPath}'] .folder-contents`);
+        if (container) {
+            container.appendChild(fileElement);
+            return;
+        }
+    }
+    fileTree.appendChild(fileElement);
+});
+
+// Fixed file deletion handler
+socket.on("file_deleted", (filename) => {
+    // Find the file element using the data-filename attribute for reliable identification
+    const fileElement = document.querySelector(`[data-filename='${filename}']`);
+    if (fileElement) {
+        fileElement.remove();
+    }
+    
+    // Clear editor if the deleted file was currently open
+    if (currentFile === filename) {
+        currentFile = null;
+        editor.value = "";
+        currentFileDisplay.textContent = "📄 No File Selected";
+    }
+});
+
+socket.on("sync_all", ({ folders, files }) => {
+    folders.sort((a, b) => a.length - b.length).forEach(folderName => {
+        const folderElement = createFolderElement(folderName);
+        const parentPath = folderName.split("/").slice(0, -1).join("/");
+        const parent = document.querySelector(`[data-folder='${parentPath}'] .folder-contents`);
+        if (parent) {
+            parent.appendChild(folderElement);
+        } else {
+            fileTree.appendChild(folderElement);
         }
     });
-}
 
-// --- Incoming Events ---
-socket.on('file_created', ({ filename, count }) => {
-    const div = filing(filename, count);
-    box.appendChild(div);
+    files.forEach((filename, index) => {
+        socket.emit("file_create", { filename });
+    });
 });
 
-socket.on('file_data', ({ filename, content }) => {
-    if (filename === currentFile && textarea) {
-        textarea.value = content;
+socket.on("file_data", ({ filename, content }) => {
+    if (filename === currentFile && editor) {
+        editor.value = content;
     }
 });
 
-socket.on('changed-code', ({ filename, content }) => {
-    if (filename === currentFile && textarea) {
-        textarea.value = content;
+socket.on("changed-code", ({ filename, content }) => {
+    if (filename === currentFile && editor && editor.value !== content) {
+        editor.value = content;
     }
 });
 
-socket.on('error', (error) => {
-    console.error("❌ Server error:", error);
+editor.addEventListener("input", () => {
+    if (!currentFile) return;
+    socket.emit("code-change", {
+        filename: currentFile,
+        content: editor.value
+    });
 });
-
-socket.on('sync_files', (files) => {
-    console.log("📥 Received existing files:", files);
-});
-
-console.log("🚀 All client listeners set up");

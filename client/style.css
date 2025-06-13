@@ -1,47 +1,128 @@
-body {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* Existing base styles assumed */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.container{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100vw;
-    height: 100%;
-    border: 2px solid black;
+html, body {
+  height: 100%;
+  font-family: Arial, sans-serif;
 }
-.nav{
-    display: flex;
-    /* justify-content: center; */
-    align-items: center;
-    flex-direction: column;
-    width: 20vw;
-    height: 100vh;
-    border: 2px solid purple;
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr 4fr;
+  grid-template-rows: 5vh 1fr;
+  height: 100vh;
+  gap: 8px;
+  padding: 8px;
 }
-#editor{
-    width: 80vw;
-    height: 100vh;
-    font-family: monospace;
-    font-size: 16px;
-    padding: 1rem;
-    box-sizing: border-box;
-    border: none;
-    resize: none;
-    outline: none;
-    border: 2px solid red;
+
+.sidebar {
+  grid-row: 1 / span 2;
+  border: 2px solid black;
+  border-radius: 10px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.editor-area {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  border: 2px solid black;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.status-bar {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid black;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: bold;
+}
+
+.code-editor {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: none;
+  outline: none;
+  font-family: monospace;
+  font-size: 1rem;
+  background-color: #fefefe;
+}
+
+.actions {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+button {
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  border: 1px solid #aaa;
+  background-color: #f1f1f1;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #ddd;
+}
+
+.file-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.folder {
+  border-left: 2px solid #aaa;
+  margin-left: 10px;
+  padding-left: 10px;
+}
+
+.folder-title {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.folder-title span {
+  cursor: pointer;
+}
+
+.folder-contents {
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.folder-contents.collapsed {
+  display: none;
 }
 
 .file {
-  margin-top: 5px;
-  padding: 4px 8px;
-  background-color: #eee;
   cursor: pointer;
-  border: 1px solid #ccc;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.file:hover {
+  background-color: #eee;
 }
 
 .file.active {
-    background-color: #acd3f2; /* or any highlight */
+  background-color: #cde8ff;
 }
