@@ -1,10 +1,21 @@
 console.log("Client.js loaded");
 
 let currentFile = null;
-
 const socket = io('http://localhost:3000/');
 
-// Connection status logging
+// Elements
+const textarea = document.getElementById("editor");
+const box = document.getElementById("box");
+const file_input = document.getElementById("file-name");
+const add = document.getElementById("add");
+
+// --- Sanity Checks ---
+if (!textarea) console.error("❌ Textarea with id 'editor' not found!");
+if (!box) console.error("❌ Element with id 'box' not found!");
+if (!file_input) console.error("❌ Element with id 'file-name' not found!");
+if (!add) console.error("❌ Element with id 'add' not found!");
+
+// --- Connection Events ---
 socket.on('connect', () => {
     console.log('✅ Connected to server with ID:', socket.id);
 });
@@ -17,45 +28,29 @@ socket.on('connect_error', (error) => {
     console.error('❌ Connection error:', error);
 });
 
-// --- Code editor sync ---
-const textarea = document.getElementById("editor");
-if (!textarea) {
-    console.error("❌ Textarea with id 'editor' not found!");
-} else {
-    console.log("✅ Found textarea element");
+// --- Textarea Input Handler ---
+if (textarea) {
+    textarea.addEventListener('input', () => {
+        if (!currentFile) return;
+        socket.emit('code-change', {
+            filename: currentFile,
+            content: textarea.value
+        });
+    });
 }
 
-textarea.addEventListener('input', () => {
-    if (!currentFile) return;
-    const content = textarea.value;
-
-    socket.emit('code-change', { filename: currentFile, content });
-});
-
-socket.on('changed-code', ({ filename, content }) => {
-    console.log("📝 Received code change from server for:", filename);
-    if (filename === currentFile) {
-        textarea.value = content;
-    }
-});
-
-// --- File creation ---
-
+// --- File Element Generator ---
 function filing(filename, count) {
-    console.log(`📁 Creating file element: ${filename} (count: ${count})`);
     const file = document.createElement("div");
     file.className = "file";
     file.id = `file-${count}`;
     file.innerText = filename;
 
     file.addEventListener("click", () => {
-        console.log(`📂 Selected file: ${filename}`);
         currentFile = filename;
-
-        // Always request fresh content from server
         socket.emit('request_file', filename);
 
-        // Highlight selected file
+        // UI highlighting
         document.querySelectorAll(".file").forEach(f => f.classList.remove("active"));
         file.classList.add("active");
     });
@@ -63,68 +58,41 @@ function filing(filename, count) {
     return file;
 }
 
-const box = document.getElementById("box");
-const file_input = document.getElementById("file-name");
-const add = document.getElementById("add");
-
-// Check if all elements exist
-if (!box) {
-    console.error("❌ Element with id 'box' not found!");
-} else {
-    console.log("✅ Found box element");
+// --- Create New File Button ---
+if (add) {
+    add.addEventListener('click', () => {
+        const name = file_input.value.trim();
+        if (name !== '') {
+            socket.emit('file_create', name);
+            file_input.value = '';
+        }
+    });
 }
 
-if (!file_input) {
-    console.error("❌ Element with id 'file-name' not found!");
-} else {
-    console.log("✅ Found file input element");
-}
-
-if (!add) {
-    console.error("❌ Element with id 'add' not found!");
-} else {
-    console.log("✅ Found add button element");
-}
-
-// Add button click handler
-add.addEventListener('click', () => {
-    console.log("🔘 Add button clicked");
-    const name = file_input.value.trim();
-    console.log("📝 File name entered:", name);
-
-    if (name !== '') {
-        console.log("📤 Emitting file_create with:", name);
-        socket.emit('file_create', name);
-        file_input.value = '';
-        console.log("✅ Input cleared");
-    } else {
-        console.warn("⚠️ Empty file name, not creating file");
-    }
-});
-
-// Listen for file creation response
+// --- Incoming Events ---
 socket.on('file_created', ({ filename, count }) => {
-    console.log("📥 Received file_created:", filename, count);
     const div = filing(filename, count);
     box.appendChild(div);
-    console.log("✅ File added to DOM");
 });
 
 socket.on('file_data', ({ filename, content }) => {
-    console.log(`📥 Received content for ${filename}`);
-    if (filename === currentFile) {
+    if (filename === currentFile && textarea) {
         textarea.value = content;
     }
 });
 
-// Listen for errors
+socket.on('changed-code', ({ filename, content }) => {
+    if (filename === currentFile && textarea) {
+        textarea.value = content;
+    }
+});
+
 socket.on('error', (error) => {
     console.error("❌ Server error:", error);
 });
 
-// Listen for existing files sync
 socket.on('sync_files', (files) => {
     console.log("📥 Received existing files:", files);
 });
 
-console.log("🚀 All event listeners set up");
+console.log("🚀 All client listeners set up");
